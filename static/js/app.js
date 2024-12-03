@@ -87,7 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="inventoryContent"></div>
+                        <div id="loadingSpinner" class="text-center" style="display: none;">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">読み込み中...</span>
+                            </div>
+                        </div>
+                        <div id="inventoryContent" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -100,12 +105,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!productCard) return;
 
         const productId = productCard.dataset.productId;
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const inventoryContent = document.getElementById('inventoryContent');
+        
+        // モーダルを表示し、ローディング状態を設定
+        const modal = new bootstrap.Modal(document.getElementById('inventoryModal'));
+        modal.show();
+        
+        loadingSpinner.style.display = 'block';
+        inventoryContent.style.display = 'none';
+
         try {
             const response = await fetch(`/api/product/${productId}/inventory`);
             if (!response.ok) throw new Error('在庫情報の取得に失敗しました');
             
             const data = await response.json();
-            const inventoryContent = document.getElementById('inventoryContent');
             
             inventoryContent.innerHTML = `
                 <h6 class="mb-3">${data.name}</h6>
@@ -146,10 +160,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <small class="text-muted">最終更新: ${data.last_updated}</small>
             `;
             
-            const modal = new bootstrap.Modal(document.getElementById('inventoryModal'));
-            modal.show();
+            // データ表示が完了したらローディングを非表示
+            loadingSpinner.style.display = 'none';
+            inventoryContent.style.display = 'block';
         } catch (error) {
             console.error('在庫情報の取得エラー:', error);
-            alert('在庫情報の取得に失敗しました。もう一度お試しください。');
+            loadingSpinner.style.display = 'none';
+            inventoryContent.innerHTML = `
+                <div class="alert alert-danger">
+                    在庫情報の取得に失敗しました。もう一度お試しください。
+                </div>
+            `;
+            inventoryContent.style.display = 'block';
         }
     });
