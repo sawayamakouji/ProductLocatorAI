@@ -30,34 +30,41 @@ def index():
 
 @app.route('/api/search')
 def search():
-    query = request.args.get('q', '')
-    search_type = request.args.get('type', 'name')
-    
-    if search_type == 'jan':
-        query_filter = Product.jan_code.ilike(f'%{query}%')
-    else:
-        query_filter = or_(
-            Product.name.ilike(f'%{query}%'),
-            Product.description.ilike(f'%{query}%'),
-            Product.jan_code.ilike(f'%{query}%')
-        )
+    try:
+        query = request.args.get('q', '')
+        search_type = request.args.get('type', 'name')
+        
+        if search_type == 'jan':
+            query_filter = Product.jan_code.ilike(f'%{query}%')
+        else:
+            query_filter = or_(
+                Product.name.ilike(f'%{query}%'),
+                Product.description.ilike(f'%{query}%'),
+                Product.jan_code.ilike(f'%{query}%')
+            )
 
-    total_count = Product.query.filter(query_filter).count()
-    products = Product.query.filter(query_filter).limit(50).all()
-    
-    return jsonify({
-        'total_count': total_count,
-        'products': [{
-            'id': p.id,
-            'name': p.name,
-            'location': p.location,
-            'jan_code': p.jan_code,
-            'description': p.description,
-            'department': p.department,
-            'category': p.category,
-            'subcategory': p.subcategory
-        } for p in products]
-    })
+        total_count = Product.query.filter(query_filter).count()
+        products = Product.query.filter(query_filter).limit(50).all()
+        
+        return jsonify({
+            'total_count': total_count,
+            'products': [{
+                'id': p.id,
+                'name': p.name,
+                'location': p.location,
+                'jan_code': p.jan_code,
+                'description': p.description,
+                'department': p.department,
+                'category': p.category,
+                'subcategory': p.subcategory
+            } for p in products]
+        }), 200, {'Content-Type': 'application/json'}
+    except Exception as e:
+        print(f"検索エラー: {str(e)}")
+        return jsonify({
+            'error': '検索中にエラーが発生しました',
+            'details': str(e)
+        }), 500, {'Content-Type': 'application/json'}
 
 @app.route('/api/product/<int:product_id>/inventory')
 def get_product_inventory(product_id):
@@ -221,4 +228,20 @@ def ai_search():
         }), 500
 
 with app.app_context():
+    # 既存のテーブルを保持したまま新しいスキーマを適用
     db.create_all()
+    
+    # テーブルの変更を反映
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        try:
+            conn.execute(text("""
+                ALTER TABLE product 
+                ADD COLUMN IF NOT EXISTS sales_copy VARCHAR(200),
+                ADD COLUMN IF NOT EXISTS coupon_info VARCHAR(200),
+                ADD COLUMN IF NOT EXISTS special_offer VARCHAR(200)
+            """))
+            conn.commit()
+        except Exception as e:
+            print(f"マイグレーションエラー: {str(e)}")
+            conn.rollback()

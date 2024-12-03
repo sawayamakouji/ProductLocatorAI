@@ -204,7 +204,8 @@ async function performSearch(query, type = 'name', isAiSearch = false) {
             console.error('検索エラー:', error);
             results.innerHTML = `
                 <div class="alert alert-danger">
-                    検索中にエラーが発生しました。もう一度お試しください。
+                    <p>検索中にエラーが発生しました。</p>
+                    <p>エラー詳細: ${error.message || '不明なエラー'}</p>
                 </div>
             `;
         }
