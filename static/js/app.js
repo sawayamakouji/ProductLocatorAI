@@ -41,28 +41,42 @@ document.addEventListener('DOMContentLoaded', () => {
             // AI分析結果の表示
             if (isAiSearch && products[0] && products[0].ai_analysis) {
                 try {
-                    const aiData = JSON.parse(products[0].ai_analysis);
+                    const aiData = typeof products[0].ai_analysis === 'string' 
+                        ? JSON.parse(products[0].ai_analysis) 
+                        : products[0].ai_analysis;
+                        
+                    // データチェックを追加
+                    const keywords = Array.isArray(aiData.keywords) ? aiData.keywords : [];
+                    const features = aiData.features || '商品の特徴情報はありません';
+                    const suggestions = aiData.suggestions || '関連商品の提案はありません';
+
                     results.innerHTML += `
                         <div class="card mb-3 bg-dark">
                             <div class="card-body">
                                 <h5 class="card-title">AI分析結果</h5>
                                 <div class="mb-2">
                                     <h6 class="card-subtitle mb-1">関連キーワード</h6>
-                                    <p class="card-text">${aiData.keywords.map(k => `<span class="badge bg-info me-1">${k}</span>`).join('')}</p>
+                                    <p class="card-text">${keywords.map(k => `<span class="badge bg-info me-1">${k}</span>`).join('')}</p>
                                 </div>
                                 <div class="mb-2">
                                     <h6 class="card-subtitle mb-1">商品の特徴</h6>
-                                    <p class="card-text">${aiData.features}</p>
+                                    <p class="card-text">${features}</p>
                                 </div>
                                 <div class="mb-2">
                                     <h6 class="card-subtitle mb-1">おすすめ商品</h6>
-                                    <p class="card-text">${aiData.suggestions}</p>
+                                    <p class="card-text">${suggestions}</p>
                                 </div>
                             </div>
                         </div>
                     `;
                 } catch (e) {
-                    console.error('AI分析結果のパースエラー:', e);
+                    console.error('AI分析結果の処理エラー:', e);
+                    results.innerHTML += `
+                        <div class="alert alert-warning">
+                            <p>AI分析結果の処理中にエラーが発生しました。</p>
+                            <p>通常の検索結果は以下に表示されます。</p>
+                        </div>
+                    `;
                 }
             }
 

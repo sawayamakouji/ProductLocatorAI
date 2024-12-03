@@ -118,10 +118,28 @@ def ai_search():
 
         try:
             response = model.generate_content(prompt)
-            ai_analysis = response.text
+            # レスポンスをJSON形式に変換
+            import json
+            ai_analysis = json.loads(response.text)
+        except json.JSONDecodeError:
+            # JSON変換に失敗した場合はデフォルト値を使用
+            ai_analysis = {
+                'keywords': [query],
+                'categories': [],
+                'features': '商品の特徴情報を取得できませんでした。',
+                'suggestions': '関連商品の提案を取得できませんでした。',
+                'enhanced_query': query
+            }
         except Exception as e:
             print(f"Gemini APIエラー: {str(e)}")
             # エラーが発生しても処理を続行し、デフォルト値を使用
+            ai_analysis = {
+                'keywords': [query],
+                'categories': [],
+                'features': '商品の特徴情報を取得できませんでした。',
+                'suggestions': '関連商品の提案を取得できませんでした。',
+                'enhanced_query': query
+            }
 
         # AIの分析結果を使用して商品を検索
         products = Product.query.filter(
