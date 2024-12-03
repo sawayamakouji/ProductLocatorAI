@@ -78,7 +78,7 @@ def get_product_inventory(product_id):
         'last_updated': '2024-12-03 13:00:00'           # ダミーデータ
     }
 @app.route('/api/ai_search')
-async def ai_search():
+def ai_search():
     query = request.args.get('q', '')
     if not query:
         return jsonify({'error': '検索クエリが必要です'}), 400
@@ -97,28 +97,36 @@ async def ai_search():
         }}
         """
         
-        response = await model.generate_content(prompt)
-        ai_analysis = response.text
+        try:
+            response = model.generate_content(prompt)
+            ai_analysis = response.text
+        except Exception as e:
+            print(f"Gemini APIエラー: {str(e)}")
+            return jsonify({'error': 'AI分析中にエラーが発生しました。通常検索をお試しください。'}), 500
         
-        # AIの分析結果を使用して商品を検索
-        products = Product.query.filter(
-            or_(
-                Product.name.ilike(f'%{query}%'),
-                Product.description.ilike(f'%{query}%'),
-                Product.category.ilike(f'%{query}%'),
-                Product.subcategory.ilike(f'%{query}%')
+        try:
+            # AIの分析結果を使用して商品を検索
+            products = Product.query.filter(
+                or_(
+                    Product.name.ilike(f'%{query}%'),
+                    Product.description.ilike(f'%{query}%'),
+                    Product.category.ilike(f'%{query}%'),
+                    Product.subcategory.ilike(f'%{query}%')
+                )
+            ).limit(20).all()
+            
+            # 検索ログを保存
+            search_log = SearchLog(
+                query=query,
+                ai_enhanced_query=ai_analysis,
+                results_count=len(products),
+                is_ai_search=True
             )
-        ).limit(20).all()
-        
-        # 検索ログを保存
-        search_log = SearchLog(
-            query=query,
-            ai_enhanced_query=ai_analysis,
-            results_count=len(products),
-            is_ai_search=True
-        )
-        db.session.add(search_log)
-        db.session.commit()
+            db.session.add(search_log)
+            db.session.commit()
+        except Exception as e:
+            print(f"データベースエラー: {str(e)}")
+            return jsonify({'error': 'データベースの操作中にエラーが発生しました'}), 500
         
         return jsonify({
             'products': [{
@@ -135,8 +143,8 @@ async def ai_search():
         })
         
     except Exception as e:
-        print(f"AI検索エラー: {str(e)}")
-        return jsonify({'error': 'AI検索中にエラーが発生しました'}), 500
+        print(f"予期せぬエラー: {str(e)}")
+        return jsonify({'error': '予期せぬエラーが発生しました。しばらく待ってから再度お試しください。'}), 500
     
     return jsonify(inventory_data)
 
