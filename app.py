@@ -30,25 +30,32 @@ def search():
     
     if search_type == 'jan':
         # JANコードの部分一致検索
-        products = Product.query.filter(Product.jan_code.ilike(f'%{query}%')).all()
+        query_filter = Product.jan_code.ilike(f'%{query}%')
     else:
-        products = Product.query.filter(
-            or_(
-                Product.name.ilike(f'%{query}%'),
-                Product.description.ilike(f'%{query}%'),
-                Product.jan_code.ilike(f'%{query}%')  # JANコードも検索対象に追加
-            )
-        ).all()
+        query_filter = or_(
+            Product.name.ilike(f'%{query}%'),
+            Product.description.ilike(f'%{query}%'),
+            Product.jan_code.ilike(f'%{query}%')  # JANコードも検索対象に追加
+        )
+
+    # 総件数を取得
+    total_count = Product.query.filter(query_filter).count()
     
-    return jsonify([{
-        'name': p.name,
-        'location': p.location,
-        'jan_code': p.jan_code,
-        'description': p.description,
-        'department': p.department,
-        'category': p.category,
-        'subcategory': p.subcategory
-    } for p in products])
+    # 最初の20件のみ取得
+    products = Product.query.filter(query_filter).limit(20).all()
+    
+    return jsonify({
+        'total_count': total_count,
+        'products': [{
+            'name': p.name,
+            'location': p.location,
+            'jan_code': p.jan_code,
+            'description': p.description,
+            'department': p.department,
+            'category': p.category,
+            'subcategory': p.subcategory
+        } for p in products]
+    })
 
 with app.app_context():
     db.create_all()
