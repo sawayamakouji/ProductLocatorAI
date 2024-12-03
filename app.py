@@ -57,5 +57,22 @@ def search():
         } for p in products]
     })
 
+@app.route('/api/product/<int:product_id>/inventory')
+def get_product_inventory(product_id):
+    product = Product.query.get_or_404(product_id)
+    
+    # 現時点ではダミーデータを返す
+    inventory_data = {
+        'id': product.id,
+        'name': product.name,
+        'stock_quantity': product.stock_quantity or 50,  # ダミーデータ
+        'recent_sales': product.recent_sales or 30,      # ダミーデータ
+        'revenue': product.revenue or 15000,             # ダミーデータ
+        'next_shipment': product.next_shipment or 100,   # ダミーデータ
+        'last_updated': '2024-12-03 13:00:00'           # ダミーデータ
+    }
+    
+    return jsonify(inventory_data)
+
 with app.app_context():
     db.create_all()

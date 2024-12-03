@@ -9,6 +9,10 @@ class Product(db.Model):
     department = db.Column(db.String(100))  # 部門名
     category = db.Column(db.String(100))    # カテゴリ名
     subcategory = db.Column(db.String(100)) # サブカテゴリ名
+    stock_quantity = db.Column(db.Integer, default=0)  # 在庫数
+    recent_sales = db.Column(db.Integer, default=0)    # 直近の販売数
+    revenue = db.Column(db.Float, default=0.0)         # 売上高
+    next_shipment = db.Column(db.Integer, default=0)   # 入荷予定数
 
     def __repr__(self):
         return f'<Product {self.name}>'

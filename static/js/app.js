@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 検索結果の表示
             products.forEach(product => {
                 results.innerHTML += `
-                    <div class="list-group-item">
+                    <div class="list-group-item product-card" data-product-id="${product.id}">
                         <h5 class="mb-1">${product.name}</h5>
                         <p class="mb-1">場所: ${product.location}</p>
                         <p class="mb-1">
@@ -77,3 +77,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+    // 在庫情報モーダルの追加
+    document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">在庫情報</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="inventoryContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+
+    // 商品カードのクリックイベントハンドラー
+    results.addEventListener('click', async (e) => {
+        const productCard = e.target.closest('.product-card');
+        if (!productCard) return;
+
+        const productId = productCard.dataset.productId;
+        try {
+            const response = await fetch(`/api/product/${productId}/inventory`);
+            if (!response.ok) throw new Error('在庫情報の取得に失敗しました');
+            
+            const data = await response.json();
+            const inventoryContent = document.getElementById('inventoryContent');
+            
+            inventoryContent.innerHTML = `
+                <h6 class="mb-3">${data.name}</h6>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <div class="card bg-dark">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">現在庫</h6>
+                                <p class="card-text h4">${data.stock_quantity}個</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="card bg-dark">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">直近の販売数</h6>
+                                <p class="card-text h4">${data.recent_sales}個</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card bg-dark">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">売上高</h6>
+                                <p class="card-text h4">${data.revenue.toLocaleString()}円</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card bg-dark">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">入荷予定</h6>
+                                <p class="card-text h4">${data.next_shipment}個</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted">最終更新: ${data.last_updated}</small>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('inventoryModal'));
+            modal.show();
+        } catch (error) {
+            console.error('在庫情報の取得エラー:', error);
+            alert('在庫情報の取得に失敗しました。もう一度お試しください。');
+        }
+    });
