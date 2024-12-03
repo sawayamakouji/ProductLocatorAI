@@ -42,7 +42,10 @@ def search():
         'name': p.name,
         'location': p.location,
         'jan_code': p.jan_code,
-        'description': p.description
+        'description': p.description,
+        'department': p.department,
+        'category': p.category,
+        'subcategory': p.subcategory
     } for p in products])
 
 with app.app_context():
