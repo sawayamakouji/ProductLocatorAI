@@ -46,8 +46,8 @@ def search():
     # 総件数を取得
     total_count = Product.query.filter(query_filter).count()
     
-    # 最初の20件のみ取得
-    products = Product.query.filter(query_filter).limit(20).all()
+    # 最初の50件を取得
+    products = Product.query.filter(query_filter).limit(50).all()
     
     return jsonify({
         'total_count': total_count,
@@ -81,6 +81,8 @@ def get_product_inventory(product_id):
 
 @app.route('/api/ai_search')
 def ai_search():
+    # レスポンスタイムアウトを60秒に設定
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60
     query = request.args.get('q', '')
     if not query:
         return jsonify({'error': '検索クエリが必要です'}), 400

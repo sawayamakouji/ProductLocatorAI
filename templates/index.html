@@ -26,9 +26,23 @@
             </div>
         </div>
 
-        <div id="results" class="list-group">
+        <div id="results" class="list-group mb-4">
             <!-- Results will be displayed here -->
         </div>
+        
+        <style>
+            .spinner-border {
+                width: 3rem;
+                height: 3rem;
+            }
+            .product-card {
+                transition: all 0.3s ease;
+            }
+            .product-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+        </style>
 
         <div id="interactive" class="viewport"></div>
     </div>

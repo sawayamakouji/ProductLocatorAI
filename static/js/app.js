@@ -8,7 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanBtn = document.getElementById('scanBtn');
     const results = document.getElementById('results');
 
-    async function performSearch(query, type = 'name', isAiSearch = false) {
+    function showLoading(isAiSearch = false) {
+    results.innerHTML = `
+        <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">検索中...</span>
+            </div>
+            <p class="mt-2">${isAiSearch ? 'AI分析中...' : '検索中...'}</p>
+        </div>
+    `;
+}
+
+async function performSearch(query, type = 'name', isAiSearch = false) {
+        showLoading(isAiSearch);
         try {
             const endpoint = isAiSearch ? '/api/ai_search' : '/api/search';
             const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&type=${type}`);
@@ -16,23 +28,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             results.innerHTML = '';
             
-            // 検索結果が20件を超える場合、警告メッセージを表示
-            if (total_count > 20) {
+            // 50件以上の場合の警告表示
+            if (total_count > 50) {
                 results.innerHTML = `
-                    <div class="alert alert-warning mb-3">
+                    <div class="alert alert-info mb-3">
                         <h5 class="alert-heading">検索結果が多すぎます（${total_count}件）</h5>
-                        <p>より正確な結果を得るために：</p>
+                        <p>以下の方法で絞り込むことができます：</p>
                         <ul>
-                            <li>より具体的な検索キーワードを使用してください</li>
-                            <li>商品名の特徴的な部分で検索してみてください</li>
-                            <li>JANコードがわかる場合はバーコードスキャンを使用してください</li>
+                            <li>カテゴリ: ${Array.from(new Set(products.map(p => p.category))).join(', ')}</li>
+                            <li>部門: ${Array.from(new Set(products.map(p => p.department))).join(', ')}</li>
+                            <li>サブカテゴリ: ${Array.from(new Set(products.map(p => p.subcategory))).filter(Boolean).join(', ')}</li>
                         </ul>
                         <hr>
-                        <p class="mb-0">検索のヒント：以下の情報も含めて検索できます：</p>
-                        <ul>
-                            <li>部門名（例：菓子、飲料）</li>
-                            <li>カテゴリ名（例：洋菓子、和菓子）</li>
-                        </ul>
+                        <p class="mb-0">ヒント: 商品の特徴や用途を含めて検索すると、より正確な結果が得られます。</p>
                     </div>
                 `;
             }
