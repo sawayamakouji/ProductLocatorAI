@@ -1,4 +1,10 @@
 import os
+import os
+import google.generativeai as genai
+
+# Gemini APIの初期化
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-pro')
 import google.generativeai as genai
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -86,13 +92,21 @@ def ai_search():
     try:
         # Gemini APIを使用してクエリを分析
         prompt = f"""
-        以下の検索クエリから商品を探すためのキーワードを抽出し、関連する可能性のある商品カテゴリも提案してください。
+        以下の検索クエリに基づいて、商品検索のための分析を行ってください。
         検索クエリ: {query}
-        
-        以下の形式でJSON形式の結果を返してください：
+
+        以下の観点で分析し、JSON形式で結果を返してください：
+        1. キーワード抽出：検索に使用する重要なキーワード
+        2. カテゴリ推測：関連する可能性のある商品カテゴリ
+        3. 商品の特徴：想定される商品の特徴や用途
+        4. 代替提案：類似の商品や関連商品の提案
+
+        結果は以下の形式で返してください：
         {{
             "keywords": ["キーワード1", "キーワード2", ...],
             "categories": ["カテゴリ1", "カテゴリ2", ...],
+            "features": "商品の特徴や用途の説明",
+            "suggestions": "代替商品や関連商品の提案",
             "enhanced_query": "改善された検索クエリ"
         }}
         """

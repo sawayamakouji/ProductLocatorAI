@@ -38,6 +38,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 検索結果の表示
+            // AI分析結果の表示
+            if (isAiSearch && products[0] && products[0].ai_analysis) {
+                try {
+                    const aiData = JSON.parse(products[0].ai_analysis);
+                    results.innerHTML += `
+                        <div class="card mb-3 bg-dark">
+                            <div class="card-body">
+                                <h5 class="card-title">AI分析結果</h5>
+                                <div class="mb-2">
+                                    <h6 class="card-subtitle mb-1">関連キーワード</h6>
+                                    <p class="card-text">${aiData.keywords.map(k => `<span class="badge bg-info me-1">${k}</span>`).join('')}</p>
+                                </div>
+                                <div class="mb-2">
+                                    <h6 class="card-subtitle mb-1">商品の特徴</h6>
+                                    <p class="card-text">${aiData.features}</p>
+                                </div>
+                                <div class="mb-2">
+                                    <h6 class="card-subtitle mb-1">おすすめ商品</h6>
+                                    <p class="card-text">${aiData.suggestions}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('AI分析結果のパースエラー:', e);
+                }
+            }
+
+            // 商品一覧の表示
             products.forEach(product => {
                 results.innerHTML += `
                     <div class="list-group-item product-card" data-product-id="${product.id}">
