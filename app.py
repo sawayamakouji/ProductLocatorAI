@@ -70,7 +70,10 @@ def get_product_inventory(product_id):
         'recent_sales': product.recent_sales or 30,
         'revenue': product.revenue or 15000,
         'next_shipment': product.next_shipment or 100,
-        'last_updated': '2024-12-03 13:00:00'
+        'last_updated': '2024-12-03 13:00:00',
+        'sales_copy': product.sales_copy or '期間限定！今だけお買い得',
+        'coupon_info': product.coupon_info or 'LINE友だち登録で100円OFF',
+        'special_offer': product.special_offer or 'ポイント2倍'
     }
     
     return jsonify(inventory_data)

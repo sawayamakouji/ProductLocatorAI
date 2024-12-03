@@ -15,6 +15,9 @@ class Product(db.Model):
     next_shipment = db.Column(db.Integer, default=0)   # 入荷予定数
     ai_keywords = db.Column(db.Text)  # AI生成されたキーワード
     ai_description = db.Column(db.Text)  # AI生成された商品説明
+    sales_copy = db.Column(db.String(200))  # セールスコピー
+    coupon_info = db.Column(db.String(200))  # クーポン情報
+    special_offer = db.Column(db.String(200))  # お買い得ポイント
 
     def __repr__(self):
         return f'<Product {self.name}>'

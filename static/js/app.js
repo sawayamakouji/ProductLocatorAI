@@ -273,6 +273,17 @@ async function performSearch(query, type = 'name', isAiSearch = false) {
             
             inventoryContent.innerHTML = `
                 <h6 class="mb-3">${data.name}</h6>
+                
+                <!-- セールス情報 -->
+                <div class="alert alert-info mb-3">
+                    <h6 class="alert-heading">🎉 お買い得情報</h6>
+                    <p class="mb-1">${data.sales_copy}</p>
+                    <hr>
+                    <p class="mb-1">📱 ${data.coupon_info}</p>
+                    <p class="mb-0">💰 ${data.special_offer}</p>
+                </div>
+
+                <!-- 在庫情報 -->
                 <div class="row">
                     <div class="col-6 mb-3">
                         <div class="card bg-dark">
