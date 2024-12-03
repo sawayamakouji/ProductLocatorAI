@@ -8,9 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanBtn = document.getElementById('scanBtn');
     const results = document.getElementById('results');
 
-    async function performSearch(query, type = 'name') {
+    async function performSearch(query, type = 'name', isAiSearch = false) {
         try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`);
+            const endpoint = isAiSearch ? '/api/ai_search' : '/api/search';
+            const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}&type=${type}`);
             const { total_count, products } = await response.json();
             
             results.innerHTML = '';
@@ -63,8 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchBtn.addEventListener('click', () => {
         const query = searchInput.value.trim();
+        const isAiSearch = document.getElementById('aiSearch').checked;
         if (query) {
-            performSearch(query);
+            performSearch(query, 'name', isAiSearch);
         }
     });
 

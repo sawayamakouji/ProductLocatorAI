@@ -1,8 +1,13 @@
 import os
+import google.generativeai as genai
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import or_
+
+# Gemini APIの設定
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-pro')
 
 class Base(DeclarativeBase):
     pass
@@ -72,6 +77,66 @@ def get_product_inventory(product_id):
         'next_shipment': product.next_shipment or 100,   # ダミーデータ
         'last_updated': '2024-12-03 13:00:00'           # ダミーデータ
     }
+@app.route('/api/ai_search')
+async def ai_search():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'error': '検索クエリが必要です'}), 400
+
+    try:
+        # Gemini APIを使用してクエリを分析
+        prompt = f"""
+        以下の検索クエリから商品を探すためのキーワードを抽出し、関連する可能性のある商品カテゴリも提案してください。
+        検索クエリ: {query}
+        
+        以下の形式でJSON形式の結果を返してください：
+        {{
+            "keywords": ["キーワード1", "キーワード2", ...],
+            "categories": ["カテゴリ1", "カテゴリ2", ...],
+            "enhanced_query": "改善された検索クエリ"
+        }}
+        """
+        
+        response = await model.generate_content(prompt)
+        ai_analysis = response.text
+        
+        # AIの分析結果を使用して商品を検索
+        products = Product.query.filter(
+            or_(
+                Product.name.ilike(f'%{query}%'),
+                Product.description.ilike(f'%{query}%'),
+                Product.category.ilike(f'%{query}%'),
+                Product.subcategory.ilike(f'%{query}%')
+            )
+        ).limit(20).all()
+        
+        # 検索ログを保存
+        search_log = SearchLog(
+            query=query,
+            ai_enhanced_query=ai_analysis,
+            results_count=len(products),
+            is_ai_search=True
+        )
+        db.session.add(search_log)
+        db.session.commit()
+        
+        return jsonify({
+            'products': [{
+                'id': p.id,
+                'name': p.name,
+                'location': p.location,
+                'jan_code': p.jan_code,
+                'department': p.department,
+                'category': p.category,
+                'subcategory': p.subcategory,
+                'ai_analysis': ai_analysis
+            } for p in products],
+            'ai_analysis': ai_analysis
+        })
+        
+    except Exception as e:
+        print(f"AI検索エラー: {str(e)}")
+        return jsonify({'error': 'AI検索中にエラーが発生しました'}), 500
     
     return jsonify(inventory_data)
 
