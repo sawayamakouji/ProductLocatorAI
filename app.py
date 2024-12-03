@@ -29,12 +29,14 @@ def search():
     search_type = request.args.get('type', 'name')
     
     if search_type == 'jan':
-        products = Product.query.filter_by(jan_code=query).all()
+        # JANコードの部分一致検索
+        products = Product.query.filter(Product.jan_code.ilike(f'%{query}%')).all()
     else:
         products = Product.query.filter(
             or_(
                 Product.name.ilike(f'%{query}%'),
-                Product.description.ilike(f'%{query}%')
+                Product.description.ilike(f'%{query}%'),
+                Product.jan_code.ilike(f'%{query}%')  # JANコードも検索対象に追加
             )
         ).all()
     
