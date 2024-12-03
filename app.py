@@ -47,6 +47,7 @@ def search():
     return jsonify({
         'total_count': total_count,
         'products': [{
+            'id': p.id,
             'name': p.name,
             'location': p.location,
             'jan_code': p.jan_code,
