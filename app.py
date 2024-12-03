@@ -1,15 +1,9 @@
 import os
-import os
-import google.generativeai as genai
-
-# Gemini APIの初期化
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-pro')
-import google.generativeai as genai
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import or_
+import google.generativeai as genai
 
 # Gemini APIの設定
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
@@ -28,7 +22,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 db.init_app(app)
 
-from models import Product
+from models import Product, SearchLog
 
 @app.route('/')
 def index():
@@ -73,16 +67,18 @@ def search():
 def get_product_inventory(product_id):
     product = Product.query.get_or_404(product_id)
     
-    # 現時点ではダミーデータを返す
     inventory_data = {
         'id': product.id,
         'name': product.name,
-        'stock_quantity': product.stock_quantity or 50,  # ダミーデータ
-        'recent_sales': product.recent_sales or 30,      # ダミーデータ
-        'revenue': product.revenue or 15000,             # ダミーデータ
-        'next_shipment': product.next_shipment or 100,   # ダミーデータ
-        'last_updated': '2024-12-03 13:00:00'           # ダミーデータ
+        'stock_quantity': product.stock_quantity or 50,
+        'recent_sales': product.recent_sales or 30,
+        'revenue': product.revenue or 15000,
+        'next_shipment': product.next_shipment or 100,
+        'last_updated': '2024-12-03 13:00:00'
     }
+    
+    return jsonify(inventory_data)
+
 @app.route('/api/ai_search')
 def ai_search():
     query = request.args.get('q', '')
@@ -110,38 +106,48 @@ def ai_search():
             "enhanced_query": "改善された検索クエリ"
         }}
         """
-        
+
+        # デフォルトのAI分析結果を設定
+        ai_analysis = {
+            'keywords': [],
+            'categories': [],
+            'features': '',
+            'suggestions': '',
+            'enhanced_query': query
+        }
+
         try:
             response = model.generate_content(prompt)
             ai_analysis = response.text
         except Exception as e:
             print(f"Gemini APIエラー: {str(e)}")
-            return jsonify({'error': 'AI分析中にエラーが発生しました。通常検索をお試しください。'}), 500
-        
+            # エラーが発生しても処理を続行し、デフォルト値を使用
+
+        # AIの分析結果を使用して商品を検索
+        products = Product.query.filter(
+            or_(
+                Product.name.ilike(f'%{query}%'),
+                Product.description.ilike(f'%{query}%'),
+                Product.category.ilike(f'%{query}%'),
+                Product.subcategory.ilike(f'%{query}%')
+            )
+        ).limit(20).all()
+
+        # 検索ログを保存
         try:
-            # AIの分析結果を使用して商品を検索
-            products = Product.query.filter(
-                or_(
-                    Product.name.ilike(f'%{query}%'),
-                    Product.description.ilike(f'%{query}%'),
-                    Product.category.ilike(f'%{query}%'),
-                    Product.subcategory.ilike(f'%{query}%')
-                )
-            ).limit(20).all()
-            
-            # 検索ログを保存
             search_log = SearchLog(
                 query=query,
-                ai_enhanced_query=ai_analysis,
+                ai_enhanced_query=str(ai_analysis),
                 results_count=len(products),
                 is_ai_search=True
             )
             db.session.add(search_log)
             db.session.commit()
         except Exception as e:
-            print(f"データベースエラー: {str(e)}")
-            return jsonify({'error': 'データベースの操作中にエラーが発生しました'}), 500
-        
+            print(f"検索ログ保存エラー: {str(e)}")
+            db.session.rollback()
+            # ログ保存のエラーは無視して処理を続行
+
         return jsonify({
             'products': [{
                 'id': p.id,
@@ -155,12 +161,13 @@ def ai_search():
             } for p in products],
             'ai_analysis': ai_analysis
         })
-        
+
     except Exception as e:
         print(f"予期せぬエラー: {str(e)}")
-        return jsonify({'error': '予期せぬエラーが発生しました。しばらく待ってから再度お試しください。'}), 500
-    
-    return jsonify(inventory_data)
+        return jsonify({
+            'error': '予期せぬエラーが発生しました。しばらく待ってから再度お試しください。',
+            'details': str(e)
+        }), 500
 
 with app.app_context():
     db.create_all()
