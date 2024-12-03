@@ -52,27 +52,124 @@ async function performSearch(query, type = 'name', isAiSearch = false) {
                     const aiData = typeof products[0].ai_analysis === 'string' 
                         ? JSON.parse(products[0].ai_analysis) 
                         : products[0].ai_analysis;
-                        
-                    // データチェックを追加
-                    const keywords = Array.isArray(aiData.keywords) ? aiData.keywords : [];
-                    const features = aiData.features || '商品の特徴情報はありません';
-                    const suggestions = aiData.suggestions || '関連商品の提案はありません';
+
+                    if (aiData.error) {
+                        results.innerHTML += `
+                            <div class="alert alert-warning">
+                                <p>${aiData.error}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const { user_intent, recommendations, product_features, trend_analysis } = aiData;
 
                     results.innerHTML += `
                         <div class="card mb-3 bg-dark">
+                            <div class="card-header">
+                                <h5 class="mb-0">AI分析結果</h5>
+                            </div>
                             <div class="card-body">
-                                <h5 class="card-title">AI分析結果</h5>
-                                <div class="mb-2">
-                                    <h6 class="card-subtitle mb-1">関連キーワード</h6>
-                                    <p class="card-text">${keywords.map(k => `<span class="badge bg-info me-1">${k}</span>`).join('')}</p>
-                                </div>
-                                <div class="mb-2">
-                                    <h6 class="card-subtitle mb-1">商品の特徴</h6>
-                                    <p class="card-text">${features}</p>
-                                </div>
-                                <div class="mb-2">
-                                    <h6 class="card-subtitle mb-1">おすすめ商品</h6>
-                                    <p class="card-text">${suggestions}</p>
+                                <div class="accordion" id="aiAnalysisAccordion">
+                                    <!-- ユーザー意図分析 -->
+                                    <div class="accordion-item bg-dark">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#userIntent">
+                                                ユーザー意図分析
+                                            </button>
+                                        </h2>
+                                        <div id="userIntent" class="accordion-collapse collapse show" data-bs-parent="#aiAnalysisAccordion">
+                                            <div class="accordion-body">
+                                                <p><strong>目的：</strong> ${user_intent.purpose}</p>
+                                                <p><strong>使用シーン：</strong> ${user_intent.scene}</p>
+                                                <p><strong>重視ポイント：</strong></p>
+                                                <div>${user_intent.important_features.map(f => `<span class="badge bg-info me-1">${f}</span>`).join('')}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 商品提案 -->
+                                    <div class="accordion-item bg-dark">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button bg-dark text-light collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#recommendations">
+                                                商品提案
+                                            </button>
+                                        </h2>
+                                        <div id="recommendations" class="accordion-collapse collapse" data-bs-parent="#aiAnalysisAccordion">
+                                            <div class="accordion-body">
+                                                <div class="mb-3">
+                                                    <h6>メイン商品</h6>
+                                                    <ul class="list-unstyled">
+                                                        ${recommendations.main_products.map(p => `<li><span class="badge bg-primary">${p}</span></li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6>関連商品</h6>
+                                                    <ul class="list-unstyled">
+                                                        ${recommendations.related_products.map(p => `<li><span class="badge bg-secondary">${p}</span></li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6>セット購入おすすめ</h6>
+                                                    <ul class="list-unstyled">
+                                                        ${recommendations.bundle_suggestions.map(p => `<li><span class="badge bg-info">${p}</span></li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 商品特徴 -->
+                                    <div class="accordion-item bg-dark">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button bg-dark text-light collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#features">
+                                                商品特徴
+                                            </button>
+                                        </h2>
+                                        <div id="features" class="accordion-collapse collapse" data-bs-parent="#aiAnalysisAccordion">
+                                            <div class="accordion-body">
+                                                <div class="mb-3">
+                                                    <h6>主な用途</h6>
+                                                    <ul class="list-unstyled">
+                                                        ${product_features.main_uses.map(u => `<li>${u}</li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6>おすすめポイント</h6>
+                                                    <ul class="list-unstyled">
+                                                        ${product_features.highlights.map(h => `<li>${h}</li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6>保管方法</h6>
+                                                    <p>${product_features.storage_tips}</p>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6>使用上の注意点</h6>
+                                                    <p>${product_features.usage_notes}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- トレンド分析 -->
+                                    <div class="accordion-item bg-dark">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button bg-dark text-light collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trends">
+                                                トレンド分析
+                                            </button>
+                                        </h2>
+                                        <div id="trends" class="accordion-collapse collapse" data-bs-parent="#aiAnalysisAccordion">
+                                            <div class="accordion-body">
+                                                <p><strong>季節性：</strong> ${trend_analysis.seasonality}</p>
+                                                <p><strong>人気の組み合わせ：</strong></p>
+                                                <ul class="list-unstyled">
+                                                    ${trend_analysis.popular_combinations.map(c => `<li><span class="badge bg-success">${c}</span></li>`).join('')}
+                                                </ul>
+                                                <p><strong>最適な使用時期：</strong> ${trend_analysis.best_timing}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

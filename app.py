@@ -34,19 +34,15 @@ def search():
     search_type = request.args.get('type', 'name')
     
     if search_type == 'jan':
-        # JANコードの部分一致検索
         query_filter = Product.jan_code.ilike(f'%{query}%')
     else:
         query_filter = or_(
             Product.name.ilike(f'%{query}%'),
             Product.description.ilike(f'%{query}%'),
-            Product.jan_code.ilike(f'%{query}%')  # JANコードも検索対象に追加
+            Product.jan_code.ilike(f'%{query}%')
         )
 
-    # 総件数を取得
     total_count = Product.query.filter(query_filter).count()
-    
-    # 最初の50件を取得
     products = Product.query.filter(query_filter).limit(50).all()
     
     return jsonify({
@@ -81,69 +77,104 @@ def get_product_inventory(product_id):
 
 @app.route('/api/ai_search')
 def ai_search():
-    # レスポンスタイムアウトを60秒に設定
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60
     query = request.args.get('q', '')
     if not query:
         return jsonify({'error': '検索クエリが必要です'}), 400
 
     try:
-        # Gemini APIを使用してクエリを分析
-        prompt = f"""
-        以下の検索クエリに基づいて、商品検索のための分析を行ってください。
-        検索クエリ: {query}
+        prompt = f'''
+与えられた検索クエリ「{query}」に基づいて、以下の分析を行ってください：
 
-        以下の観点で分析し、JSON形式で結果を返してください：
-        1. キーワード抽出：検索に使用する重要なキーワード
-        2. カテゴリ推測：関連する可能性のある商品カテゴリ
-        3. 商品の特徴：想定される商品の特徴や用途
-        4. 代替提案：類似の商品や関連商品の提案
+1. ユーザーの意図分析：
+- 探している商品の種類や目的
+- 想定される使用シーン
+- 重視している特徴（価格帯、品質、ブランドなど）
 
-        結果は以下の形式で返してください：
-        {{
-            "keywords": ["キーワード1", "キーワード2", ...],
-            "categories": ["カテゴリ1", "カテゴリ2", ...],
-            "features": "商品の特徴や用途の説明",
-            "suggestions": "代替商品や関連商品の提案",
-            "enhanced_query": "改善された検索クエリ"
-        }}
-        """
+2. 商品提案：
+- メインカテゴリの商品
+- 関連する周辺商品
+- 代替商品の提案
+- セット購入におすすめの商品
 
-        # デフォルトのAI分析結果を設定
-        ai_analysis = {
-            'keywords': [],
-            'categories': [],
-            'features': '',
-            'suggestions': '',
-            'enhanced_query': query
-        }
+3. 商品特徴：
+- 主な用途と特徴
+- おすすめのポイント
+- 類似商品との違い
+- 保管方法や使用上の注意点
+
+4. トレンド分析：
+- 季節性
+- 人気の組み合わせ
+- 使用時期や場面
+
+以下のJSON形式で結果を返してください：
+{{
+    "user_intent": {{
+        "purpose": "使用目的",
+        "scene": "使用シーン",
+        "important_features": ["重視ポイント1", "重視ポイント2"]
+    }},
+    "recommendations": {{
+        "main_products": ["商品1", "商品2"],
+        "related_products": ["関連商品1", "関連商品2"],
+        "alternatives": ["代替品1", "代替品2"],
+        "bundle_suggestions": ["セット商品1", "セット商品2"]
+    }},
+    "product_features": {{
+        "main_uses": ["用途1", "用途2"],
+        "highlights": ["ポイント1", "ポイント2"],
+        "storage_tips": "保管方法",
+        "usage_notes": "使用上の注意点"
+    }},
+    "trend_analysis": {{
+        "seasonality": "季節性",
+        "popular_combinations": ["組み合わせ1", "組み合わせ2"],
+        "best_timing": "最適な使用時期"
+    }},
+    "enhanced_query": "改善された検索クエリ"
+}}
+'''
 
         try:
             response = model.generate_content(prompt)
-            # レスポンスをJSON形式に変換
-            import json
-            ai_analysis = json.loads(response.text)
-        except json.JSONDecodeError:
-            # JSON変換に失敗した場合はデフォルト値を使用
-            ai_analysis = {
-                'keywords': [query],
-                'categories': [],
-                'features': '商品の特徴情報を取得できませんでした。',
-                'suggestions': '関連商品の提案を取得できませんでした。',
-                'enhanced_query': query
-            }
+            ai_analysis = response.text
+            try:
+                import json
+                ai_analysis = json.loads(ai_analysis)
+            except json.JSONDecodeError:
+                ai_analysis = {
+                    "user_intent": {
+                        "purpose": "目的を取得できませんでした",
+                        "scene": "シーンを取得できませんでした",
+                        "important_features": []
+                    },
+                    "recommendations": {
+                        "main_products": [],
+                        "related_products": [],
+                        "alternatives": [],
+                        "bundle_suggestions": []
+                    },
+                    "product_features": {
+                        "main_uses": [],
+                        "highlights": [],
+                        "storage_tips": "保管方法を取得できませんでした",
+                        "usage_notes": "使用上の注意点を取得できませんでした"
+                    },
+                    "trend_analysis": {
+                        "seasonality": "季節性を取得できませんでした",
+                        "popular_combinations": [],
+                        "best_timing": "使用時期を取得できませんでした"
+                    },
+                    "enhanced_query": query
+                }
         except Exception as e:
             print(f"Gemini APIエラー: {str(e)}")
-            # エラーが発生しても処理を続行し、デフォルト値を使用
             ai_analysis = {
-                'keywords': [query],
-                'categories': [],
-                'features': '商品の特徴情報を取得できませんでした。',
-                'suggestions': '関連商品の提案を取得できませんでした。',
-                'enhanced_query': query
+                "error": "AI分析中にエラーが発生しました",
+                "enhanced_query": query
             }
 
-        # AIの分析結果を使用して商品を検索
         products = Product.query.filter(
             or_(
                 Product.name.ilike(f'%{query}%'),
@@ -153,7 +184,6 @@ def ai_search():
             )
         ).limit(20).all()
 
-        # 検索ログを保存
         try:
             search_log = SearchLog(
                 query=query,
@@ -166,7 +196,6 @@ def ai_search():
         except Exception as e:
             print(f"検索ログ保存エラー: {str(e)}")
             db.session.rollback()
-            # ログ保存のエラーは無視して処理を続行
 
         return jsonify({
             'products': [{
@@ -176,8 +205,7 @@ def ai_search():
                 'jan_code': p.jan_code,
                 'department': p.department,
                 'category': p.category,
-                'subcategory': p.subcategory,
-                'ai_analysis': ai_analysis
+                'subcategory': p.subcategory
             } for p in products],
             'ai_analysis': ai_analysis
         })
