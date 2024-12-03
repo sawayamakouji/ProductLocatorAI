@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8">
+        <h1 class="text-center mb-4">商品検索</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="商品名を入力">
+                </div>
+                <div class="d-grid gap-2">
+                    <button id="searchBtn" class="btn btn-primary btn-lg">検索</button>
+                    <button id="scanBtn" class="btn btn-secondary btn-lg">バーコードスキャン</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="list-group">
+            <!-- Results will be displayed here -->
+        </div>
+
+        <div id="interactive" class="viewport"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="{{ url_for('static', filename='js/barcode.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
