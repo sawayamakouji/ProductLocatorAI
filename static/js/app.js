@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">在庫情報</h5>
+                        <h5 class="modal-title">商品情報</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
